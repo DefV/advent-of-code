@@ -1,4 +1,4 @@
-use std::cmp;
+use std::{cmp, collections::HashMap};
 
 fn main() {
     // Open file passed in ARGV
@@ -20,7 +20,7 @@ fn main() {
     println!("Sum: {}", sum);
 }
 
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Hash,Debug)]
 struct Position(usize, usize);
 
 impl Position {
@@ -38,68 +38,57 @@ fn parse_document(document: &str) -> Vec<i32> {
         .map(|line| line.chars().collect())
         .collect();
 
-    let mut good_parts: Vec<i32> = vec![];
-    let mut current_part: Vec<char> = vec![];
-    let mut last_position: Position = Position(0, 0);
-
+    let mut products: Vec<i32> = vec![];
     for (x, line) in grid.iter().enumerate() {
         for (y, char) in line.iter().enumerate() {
-            match char {
-                '0'..='9' => {
-                    current_part.push(*char);
-                    last_position = Position(x, y);
-                }
-                _ => {
-                    if current_part.len() > 0 {
-                        if check_surroundings(&grid, &current_part, &last_position) {
-                            good_parts.push(
-                                current_part
-                                    .iter()
-                                    .collect::<String>()
-                                    .parse::<i32>()
-                                    .unwrap(),
-                            );
-                        }
-
-                        current_part = vec![];
-                    }
+            if *char == '*' {
+                let position = Position(x, y);
+                let surrounding_numbers = surrounding_numbers(&grid, &position);
+                if surrounding_numbers.len() == 2 {
+                    products.push(surrounding_numbers[0] * surrounding_numbers[1])
                 }
             }
-        }
-
-        if current_part.len() > 0 {
-            if check_surroundings(&grid, &current_part, &last_position) {
-                good_parts.push(
-                    current_part
-                        .iter()
-                        .collect::<String>()
-                        .parse::<i32>()
-                        .unwrap(),
-                );
-            }
-
-            current_part = vec![];
         }
     }
 
-    return good_parts;
+    return products;
 }
 
-fn check_surroundings(grid: &Vec<Vec<char>>, part: &Vec<char>, position: &Position) -> bool {
-    let left_top = position.relative_move(-1, 0 - part.len() as i16);
+fn surrounding_numbers(grid: &Vec<Vec<char>>, position: &Position) -> Vec<i32> {
+    let left_top = position.relative_move(-1, -1);
     let right_bottom: Position = position.relative_move(1, 1);
+
+    let mut numbers: HashMap<Position,i32> = HashMap::new();
 
     for x in left_top.0..=right_bottom.0 {
         for y in left_top.1..=right_bottom.1 {
-            match grid[x][y] {
-                '0'..='9' => {}
-                '.' => {}
-                _ => return true,
+            let nr = grid[x][y];
+            if nr.is_digit(10) {
+                let (pos, number) = find_number_at_position(&grid, &Position(x, y));
+                numbers.insert(pos, number);
             }
         }
     }
 
-    return false;
+    return numbers.values().map(|x| *x).collect();
+}
+
+fn find_number_at_position(grid: &Vec<Vec<char>>, position: &Position) -> (Position, i32) {
+    let row = grid[position.0].clone();
+    let mut y = position.1;
+    let mut number = vec![];
+
+
+    // Find the right bound
+    while y < row.len() && row[y].is_digit(10) {
+        y += 1;
+    }
+    while y > 0 && row[y - 1].is_digit(10) {
+        y -= 1;
+        number.push(row[y]);
+    }
+
+    return (Position(position.0, y), number.iter().rev().collect::<String>().parse::<i32>().unwrap());
 }
 
 #[cfg(test)]
@@ -120,6 +109,6 @@ mod tests {
 .664.598..";
 
         let result = parse_document(&document);
-        assert_eq!(result, vec![467, 35, 633, 617, 592, 755, 664, 598])
+        assert_eq!(result, vec![16345, 451490])
     }
 }
