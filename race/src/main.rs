@@ -19,7 +19,7 @@ fn main() {
 
     let result = races
         .iter()
-        .map(|race| race.winnable().len())
+        .map(|race| race.winnable_binary())
         .reduce(|a, b| a * b )
         .unwrap();
     
