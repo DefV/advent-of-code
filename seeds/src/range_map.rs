@@ -39,9 +39,9 @@ impl RangeMap {
     }
 
     pub fn get(&self, source: u64) -> u64 {
-        self.ranges
-            .iter()
-            .find(|range| range.source_range.contains(&source))
+      let ranges = &self.ranges;
+        ranges.into_iter()
+            .find(|&range| range.source_range.contains(&source))
             .and_then(|range| source.checked_add_signed(range.destination_offset))
             .unwrap_or(source)
     }

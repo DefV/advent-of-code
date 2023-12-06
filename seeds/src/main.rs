@@ -67,7 +67,7 @@ impl Seeds {
 
 fn parallel_find_min(seeds: Seeds, maps: HashMap<&str, RangeMap>) -> u64 {
     seeds.iter()
-        .par_bridge()
+        // .par_bridge()
         .map(|i| resolve_seed_location(i, &maps))
         .min()
         .unwrap()
