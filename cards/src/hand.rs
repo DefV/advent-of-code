@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-#[derive(Eq,PartialEq,Debug)]
+#[derive(Eq, PartialEq, Debug)]
 pub struct Hand {
     cards: Vec<char>,
 }
@@ -17,9 +17,8 @@ enum Rank {
 }
 
 const CARD_ORDER: [char; 13] = [
-    '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'
+    'J', '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'Q', 'K', 'A',
 ];
-
 
 impl Hand {
     pub fn from_str(s: &str) -> Self {
@@ -30,18 +29,19 @@ impl Hand {
 
     // Returns the rank of the hand and the highest card
     fn rank(&self) -> Rank {
-        let mut counts: Vec<u8> = self
-            .cards
-            .iter()
-            .fold(HashMap::new(), |mut acc: HashMap<char, u8>, card: &char| {
-                *acc.entry(*card).or_insert(0) += 1;
-                acc
-            })
-            .values()
-            .copied()
-            .collect();
+        let mut card_count =
+            self.cards
+                .iter()
+                .fold(HashMap::new(), |mut acc: HashMap<char, u8>, card: &char| {
+                    *acc.entry(*card).or_insert(0) += 1;
+                    acc
+                });
 
+        // Resolve jokers
+        let joker_count = card_count.remove(&'J').unwrap_or(0);
+        let mut counts: Vec<u8> = card_count.values().copied().collect();
         counts.sort_unstable_by(|a, b| b.cmp(a));
+        counts.get_mut(0).and_then(|c| Some(*c += joker_count));
 
         match counts.as_slice() {
             [5] => Rank::FiveOfAKind,
@@ -103,7 +103,12 @@ mod tests {
         assert_eq!(Hand::from_str("KKA23").rank(), Rank::OnePair);
         assert_eq!(Hand::from_str("KK223").rank(), Rank::TwoPair);
         assert_eq!(Hand::from_str("KKK23").rank(), Rank::ThreeOfAKind);
-        assert_eq!(Hand::from_str("KQJT9").rank(), Rank::HighCard);
+        assert_eq!(Hand::from_str("KQ2T9").rank(), Rank::HighCard);
+    }
+
+    #[test]
+    fn test_hand_rank_with_joker() {
+        assert_eq!(Hand::from_str("AAJJJ").rank(), Rank::FiveOfAKind);
     }
 
     #[test]
