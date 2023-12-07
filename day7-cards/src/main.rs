@@ -27,14 +27,12 @@ fn main() {
 fn parse_document(document: &str) -> Vec<(hand::Hand, u32)> {
     document
         .lines()
-        .map(|s| {
-            let mut parts = s.split(char::is_whitespace);
-
+        .map(str::split_whitespace)
+        .map(|mut parts| {
             (
                 hand::Hand::from_str(parts.next().unwrap()),
                 parts.next().unwrap().parse().unwrap(),
             )
         })
-        .to_owned()
         .collect()
 }

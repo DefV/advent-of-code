@@ -38,7 +38,7 @@ impl Hand {
                 });
 
         // Resolve jokers
-        let joker_count = card_count.remove(&'J').unwrap_or(0);
+        let joker_count = card_count.remove(&'J').unwrap_or_default();
         let mut counts: Vec<u8> = card_count.values().copied().collect();
         counts.sort_unstable_by(|a, b| b.cmp(a));
         counts.get_mut(0).and_then(|c| Some(*c += joker_count));
