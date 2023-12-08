@@ -6,6 +6,7 @@ enum Direction {
     Right,
 }
 
+type Map = HashMap<Node, Turns>;
 type Node = u32;
 type Turns = (Node, Node);
 
@@ -26,13 +27,18 @@ fn main() {
 
     let directions = parse_directions(lines.next().unwrap());
     lines.next();
-
     let map = parse_map(lines.into_iter());
 
+
+    println!("Number of human turns: {}", traverse_map_human(&map, &directions));
+    println!("Number of ghost turns: {}", traverse_map_ghost(&map, &directions));
+}
+
+fn traverse_map_human(map: &Map, directions: &Vec<Direction>) -> u32 {
     let destination = get_node("ZZZ");
     let mut node: Node = get_node("AAA");
-    let mut turn_count = 0;
     let mut turns = directions.iter().cycle();
+    let mut turn_count = 0;
 
     while node != destination {
         let (left, right) = map.get(&node).unwrap();
@@ -46,8 +52,64 @@ fn main() {
         turn_count += 1;
     }
 
-    println!("Number of turns: {}", turn_count);
+    turn_count
 }
+
+fn traverse_map_ghost(map: &Map, directions: &Vec<Direction>) -> u64 {
+    let nodes: Vec<Node> = map.keys().cloned().filter(is_ghost_beginning).collect();
+
+    let end_node_steps: Vec<u32> = nodes.iter().map(|node| {
+        let mut turns = directions.iter().cycle();
+        let mut node = *node;
+        let mut turn_count = 0;
+
+        while !is_ghost_ending(&node) {
+            turn_count += 1;
+            let (left, right) = map.get(&node).unwrap();
+            let direction = turns.next().unwrap();
+
+            node = match direction {
+                Direction::Left => *left,
+                Direction::Right => *right,
+            }
+        }
+
+        turn_count
+    }).collect();
+
+    lcm(&end_node_steps)
+}
+
+fn lcm(numbers: &Vec<u32>) -> u64 {
+    let mut lcm = numbers[0] as u64;
+
+    for number in numbers {
+        let nr = *number as u64;
+        lcm = lcm * nr / gcd(lcm, nr);
+    }
+
+    lcm
+}
+
+fn gcd(a: u64, b: u64) -> u64 {
+    if b == 0 {
+        return a;
+    }
+
+    gcd(b, a % b)
+}
+
+// All ghost beginnings end with 'A'
+fn is_ghost_beginning(node: &Node) -> bool {
+    *node & 0xff == 65
+}
+
+// All ghost endings end with 'Z'
+fn is_ghost_ending(node: &Node) -> bool {
+    *node & 0xff == 90
+}
+
+
 
 fn parse_directions(line: &str) -> Vec<Direction> {
     let mut directions = Vec::new();
@@ -64,7 +126,7 @@ fn parse_directions(line: &str) -> Vec<Direction> {
     directions
 }
 
-fn parse_map<'a, I>(lines: I) -> HashMap<Node, Turns>
+fn parse_map<'a, I>(lines: I) -> Map
 where
     I: Iterator<Item = &'a str>,
 {
