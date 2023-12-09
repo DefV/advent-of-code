@@ -1,4 +1,7 @@
+use std::time::Instant;
+
 fn main() {
+    let now = Instant::now();
     // Open file passed in ARGV
     let args: Vec<String> = std::env::args().collect();
     // Print usage if no file is passed
@@ -19,6 +22,7 @@ fn main() {
 
     println!("Part 1: {}", sequences.iter().map(solve_next_for_seq).sum::<i64>());
     println!("Part 2: {}", sequences.iter_mut().map(|seq| { seq.reverse(); solve_next_for_seq(seq)}).sum::<i64>());
+    println!("Elapsed: {:.2?}", now.elapsed());
 }
 
 fn solve_next_for_seq(sequence: &Vec<i64>) -> i64 {
