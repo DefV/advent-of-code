@@ -11,19 +11,18 @@ fn main() {
     let document =
         std::fs::read_to_string(filename).expect("Something went wrong reading the file");
 
-    let sum: i64 = document
+    let mut sequences: Vec<Vec<i64>> = document
         .lines()
         .map(str::split_whitespace)
-        .map(|seq| seq.map(str::parse::<i64>).filter_map(Result::ok).collect() )
-        .map(|seq: Vec<_>| dbg!(solve_next_for_seq(dbg!(&seq))))
-        .sum();
+        .map(|seq| seq.map(str::parse::<i64>).filter_map(Result::ok).collect())
+        .collect();
 
-    println!("{}", sum)
+    println!("Part 1: {}", sequences.iter().map(solve_next_for_seq).sum::<i64>());
+    println!("Part 2: {}", sequences.iter_mut().map(|seq| { seq.reverse(); solve_next_for_seq(seq)}).sum::<i64>());
 }
 
 fn solve_next_for_seq(sequence: &Vec<i64>) -> i64 {
     let mut sequence = sequence.clone();
-    sequence.reverse();
     let mut result = *sequence.last().unwrap();
 
     while !sequence.iter().all(|&x| x == 0) {
