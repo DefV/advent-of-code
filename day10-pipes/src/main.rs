@@ -1,4 +1,4 @@
-use std::path;
+use std::collections::HashMap;
 use std::slice::Iter;
 use std::time::Instant;
 
@@ -38,12 +38,14 @@ type Map = Vec<Vec<Piece>>;
 struct Maze {
     map: Map,
     animal: (usize, usize),
+    area_size: usize,
+    path_size: usize
 }
 
 #[derive(Debug)]
 struct Piece {
     directions: Vec<Direction>,
-    is_animal: bool,
+    is_animal: bool
 }
 
 impl Piece {
@@ -108,7 +110,7 @@ impl Maze {
             map.push(row);
         }
 
-        Self { map, animal }
+        Self { map, animal, area_size: 0, path_size: 0 }
     }
 
     fn at(&self, (x, y): (usize, usize)) -> Option<&Piece> {
@@ -130,7 +132,8 @@ impl Maze {
         }
     }
 
-    fn path_length(&self) -> usize {
+    fn build_path(&mut self) {
+        let mut path = HashMap::new();
         // Check pieces around the animal
         let animal_directions: Vec<Direction> = Direction::iter()
             .filter_map(|direction| {
@@ -145,6 +148,8 @@ impl Maze {
             })
             .collect();
 
+        self.map[self.animal.0][self.animal.1].directions = animal_directions.clone();
+
         // Start the path
         let mut direction = animal_directions[0];
         let mut position = self.go(self.animal, direction).unwrap();
@@ -158,12 +163,49 @@ impl Maze {
                 .find(|dir| **dir != direction.opposite())
                 .unwrap();
 
+            path.insert(position, piece);
             direction = *next_direction;
             position = self.go(position, direction).unwrap();
             steps += 1;
         }
 
-        steps
+        self.area_size = self.calculate_area_size(&path);
+        self.path_size = steps;
+    }
+    
+    fn calculate_area_size(&self, path: &HashMap<(usize, usize), &Piece>) -> usize {
+        let mut area_size = 0;
+        let mut in_area = false;
+
+        for (x, row) in self.map.iter().enumerate() {
+            for (y, _) in row.iter().enumerate() {
+                if let Some(piece) = path.get(&(x, y)) {
+                    if piece.directions.contains(&Direction::East) {
+                        in_area = true;
+                    } else {
+                        in_area = !in_area;
+                    }
+                    if in_area {
+                        print!("X");
+                    } else {
+                        print!("Y");
+                    }
+                } else {
+                    if in_area {
+                        print!("I");
+                        area_size += 1;
+                    } else {
+                        print!("0");
+                    }
+                }
+
+            }
+
+            println!();
+            in_area = false;
+        }
+
+        area_size
     }
 }
 
@@ -181,10 +223,11 @@ fn main() {
     let document =
         std::fs::read_to_string(filename).expect("Something went wrong reading the file");
 
-    let maze = Maze::from_str(&document);
-    let path_length = maze.path_length();
+    let mut maze = Maze::from_str(&document);
+    maze.build_path();
 
-    println!("Path length: {}, farthest away: {}", path_length, path_length / 2);
+    println!("Path length: {}, farthest away: {}", maze.path_size, maze.path_size / 2);
+    println!("Area size: {}", maze.area_size);
     println!("Runtime: {:?}", now.elapsed());
 }
 
