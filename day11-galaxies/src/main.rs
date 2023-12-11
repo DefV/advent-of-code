@@ -47,8 +47,8 @@ enum Space {
     Galaxy,
 }
 
-impl Space {
-    fn from_char(c: &char) -> Space {
+impl From<&char> for Space {
+    fn from(c: &char) -> Space {
         match *c {
             GALAXY => Space::Galaxy,
             _ => Space::Nothing,
@@ -116,7 +116,7 @@ fn expand_map(document: &str) -> Map {
         if map[i].iter().all(is_blank_space) {
             expanded_map.push(map[i].iter().map(|_| Space::ExpandedNothing).collect());
         } else {
-            expanded_map.push(map[i].iter().map(Space::from_char).collect());
+            expanded_map.push(map[i].iter().map(Space::from).collect());
         }
     }
 
