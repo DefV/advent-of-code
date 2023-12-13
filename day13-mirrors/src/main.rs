@@ -17,7 +17,8 @@ fn main() {
     let document =
         std::fs::read_to_string(filename).expect("Something went wrong reading the file");
     
-    let sum = document.split("\n\n").map(Pattern::from).map(|pattern| pattern.find_reflection()).fold(0, |acc, (middle, reflection)| {
+    let patterns: Vec<Pattern> = document.split("\n\n").map(Pattern::from).collect();
+    let sum = patterns.iter().map(|pattern| pattern.find_smudge_reflection()).fold(0, |acc, (middle, reflection)| {
         if reflection == Reflection::Horizontal {
             acc + middle * 100
         } else {

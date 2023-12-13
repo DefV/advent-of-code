@@ -1,12 +1,11 @@
 use core::panic;
-use std::collections::HashSet;
 
 pub type Sequence = u64;
 
 #[derive(Debug, PartialEq)]
 pub enum Reflection {
     Horizontal,
-    Vertical
+    Vertical,
 }
 
 #[derive(Debug)]
@@ -21,7 +20,12 @@ impl From<&str> for Pattern {
         let mut column_chars: Vec<Vec<char>> = vec![vec![]; column_count];
 
         let rows = Box::new(document.lines().map(str::chars))
-            .inspect(|chars| { chars.clone().enumerate().for_each(|(idx, c)| column_chars[idx].push(c) ) })
+            .inspect(|chars| {
+                chars
+                    .clone()
+                    .enumerate()
+                    .for_each(|(idx, c)| column_chars[idx].push(c))
+            })
             .map(|chars| parse_sequence(chars))
             .collect();
 
@@ -61,26 +65,56 @@ fn find_reflection(sequences: &Vec<Sequence>) -> Option<usize> {
         if sequences.iter().rev().copied().collect::<Vec<u64>>() == sequences {
             return Some(sequences.len() / 2);
         }
-        
+
         sequences.pop();
     }
 
     None
 }
 
+fn smudge_reflection_idx(sequences: &Vec<Sequence>) -> Option<usize> {
+    (0..sequences.len() - 1).find_map(|idx| {
+        if (0..idx + 1)
+            .into_iter()
+            .rev()
+            .zip(idx + 1..sequences.len())
+            .fold(0, |acc, (i, j)| {
+                acc + (sequences[i] ^ sequences[j]).count_ones()
+            })
+            == 1
+        {
+            Some(idx + 1)
+        } else {
+            None
+        }
+    })
+}
+
 impl Pattern {
+    pub fn find_smudge_reflection(&self) -> (usize, Reflection) {
+        if let Some(reflection) = smudge_reflection_idx(&self.rows) {
+            (reflection, Reflection::Horizontal)
+        } else if let Some(reflection) = smudge_reflection_idx(&self.columns) {
+            (reflection, Reflection::Vertical)
+        } else {
+            unreachable!()
+        }
+    }
+
     pub fn find_reflection(&self) -> (usize, Reflection) {
         if let Some(reflection) = find_reflection(&self.rows) {
             (reflection, Reflection::Horizontal)
         } else if let Some(reflection) = find_reflection(&self.columns) {
             (reflection, Reflection::Vertical)
-        } else if let Some(reflection) = find_reflection(&self.rows.iter().rev().copied().collect()) {
+        } else if let Some(reflection) = find_reflection(&self.rows.iter().rev().copied().collect())
+        {
             (self.rows.len() - reflection, Reflection::Horizontal)
-        } else if let Some(reflection) = find_reflection(&self.columns.iter().rev().copied().collect()) {
+        } else if let Some(reflection) =
+            find_reflection(&self.columns.iter().rev().copied().collect())
+        {
             (self.columns.len() - reflection, Reflection::Vertical)
         } else {
-            dbg!(&self);
-            panic!("No reflection found");
+            unreachable!()
         }
     }
 }
@@ -89,8 +123,7 @@ impl Pattern {
 mod tests {
     use super::*;
 
-    const FIRST_PATTERN: &str =
-"#.##..##.
+    const FIRST_PATTERN: &str = "#.##..##.
 ..#.##.#.
 ##......#
 ##......#
@@ -98,8 +131,7 @@ mod tests {
 ..##..##.
 #.#.##.#.";
 
-    const SECOND_PATTERN: &str =
-"#...##..#
+    const SECOND_PATTERN: &str = "#...##..#
 #....#..#
 ..##..###
 #####.##.
@@ -130,5 +162,17 @@ mod tests {
 
         let pattern = Pattern::from(SECOND_PATTERN);
         assert_eq!(pattern.find_reflection(), (4, Reflection::Horizontal));
+    }
+
+    #[test]
+    fn test_find_smudge_middle() {
+        let pattern = Pattern::from(FIRST_PATTERN);
+        assert_eq!(
+            pattern.find_smudge_reflection(),
+            (3, Reflection::Horizontal)
+        );
+
+        let pattern = Pattern::from(SECOND_PATTERN);
+        assert_eq!(pattern.find_smudge_reflection(), (1, Reflection::Horizontal));
     }
 }
