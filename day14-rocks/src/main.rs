@@ -1,4 +1,4 @@
-use std::collections::{HashMap, hash_map::DefaultHasher};
+use std::collections::{hash_map::DefaultHasher, HashMap};
 use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -27,30 +27,30 @@ fn parse_platform(platform: &str) -> Platform {
 }
 
 fn shift_and_rotate(platform: &mut Platform) {
-    let mut shifted: Platform = vec![];
-
     let len = platform.len();
+    let mut shifted: Platform = Vec::with_capacity(len);
+
     for x in 0..len {
-        let mut row = vec![];
-        let mut empties = vec![];
-        let mut rounds = vec![];
+        let mut row = Vec::with_capacity(len);
+        let mut empties = 0;
+        let mut rounds = 0;
 
         for y in 1..=len {
             let rock = platform[len - y][x];
             match rock {
-                Rock::Round => rounds.push(rock),
-                Rock::None => empties.push(rock),
+                Rock::Round => rounds += 1,
+                Rock::None => empties += 1,
                 Rock::Cube => {
-                    row.append(&mut empties);
-                    row.append(&mut rounds);
-                    row.push(rock);
-                    empties = vec![];
-                    rounds = vec![];
+                    row.extend(vec![Rock::None; empties]);
+                    row.extend(vec![Rock::Round; rounds]);
+                    row.push(Rock::Cube);
+                    empties = 0;
+                    rounds = 0;
                 }
             }
         }
-        row.append(&mut empties);
-        row.append(&mut rounds);
+        row.extend(vec![Rock::None; empties]);
+        row.extend(vec![Rock::Round; rounds]);
         shifted.push(row);
     }
 
@@ -62,18 +62,8 @@ fn count_north_weight(platform: &Platform) -> usize {
         .iter()
         .rev()
         .enumerate()
-        .fold(0, |acc, (idx, column)| {
-            let mut row_score = 0;
-
-            for &rock in column.iter() {
-                match rock {
-                    Rock::Round => row_score += idx + 1,
-                    _ => {}
-                };
-            }
-
-            acc + row_score
-        })
+        .map(|(idx, column)| (idx + 1) * column.iter().filter(|&rock| *rock == Rock::Round).count())
+        .sum()
 }
 
 fn hash_platform(platform: &Platform) -> u64 {
@@ -96,11 +86,11 @@ fn main() {
     let document =
         std::fs::read_to_string(filename).expect("Something went wrong reading the file");
 
-    let mut loop_detector: HashMap<u64, u32> = HashMap::new();
-
+    let mut loop_detector = HashMap::new();
     let mut platform = parse_platform(&document);
-    let mut i = 0;
     let mut rotations_left = 1_000_000_000_u32;
+    let mut i = 0;
+
     while rotations_left > 0 {
         for _ in 0..4 {
             shift_and_rotate(&mut platform)
@@ -108,10 +98,9 @@ fn main() {
         rotations_left -= 1;
         i += 1;
 
-        if let Some(original_idx) = loop_detector.get(&hash_platform(&platform)) {
-            rotations_left = (1_000_000_000_u32 - i) % (i - original_idx);
+        if let Some(original_idx) = loop_detector.insert(hash_platform(&platform), i) {
+            rotations_left %= i - original_idx;
         }
-        loop_detector.insert(hash_platform(&platform), i);
     }
     let result = count_north_weight(&platform);
 
