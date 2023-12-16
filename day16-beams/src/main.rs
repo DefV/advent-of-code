@@ -15,7 +15,7 @@ fn main() {
         std::fs::read_to_string(filename).expect("Something went wrong reading the file");
 
     part1(document.to_string());
-    part2(&document);
+    part2(document.to_string());
 
     println!("Runtime: {:?}", now.elapsed());
 }
@@ -25,7 +25,6 @@ type Vector = (isize, isize);
 
 struct Map {
     map: HashMap<Point, char>,
-    visited_locations: HashSet<Point>,
     bounds: (usize, usize),
 }
 
@@ -43,8 +42,7 @@ impl From<String> for Map {
 
         Map {
             map,
-            bounds,
-            visited_locations: HashSet::new(),
+            bounds
         }
     }
 }
@@ -61,17 +59,18 @@ impl Map {
         }
     }
 
-    fn traverse(&mut self) {
+    fn traverse(&self, entry: (Point, Vector)) -> u64 {
+        let mut visited_locations: HashSet<Point> = HashSet::new();
         let mut visit_queue: Vec<(Point, Vector)> = vec![];
         let mut loop_detector: HashSet<(Point, Vector)> = HashSet::new();
-        visit_queue.push(((0, 0), (0, 1)));
+        visit_queue.push(entry);
 
         while let Some((location, vector)) = visit_queue.pop() {
             if !loop_detector.insert((location, vector)) {
                 continue;
             }
 
-            self.visited_locations.insert(location);
+            visited_locations.insert(location);
 
             let next_vectors = match self.map.get(&location) {
                 Some('.') => vec![vector],
@@ -110,15 +109,29 @@ impl Map {
             }
 
         }
+
+        visited_locations.len() as u64
     }
 }
 
 fn part1(document: String) {
-    let mut map = Map::from(document);
-    map.traverse();
-    println!("Part 1: {}", map.visited_locations.len());
+    let map = Map::from(document);
+    let count = map.traverse(((0, 0), (0, 1)));
+    println!("Part 1: {}", count);
 }
 
-fn part2(document: &str) {
-    todo!()
+fn part2(document: String) {
+    let map = Map::from(document);
+    let mut max_visited = 0;
+
+    for y in 0..=map.bounds.1 {
+        max_visited = max_visited.max(map.traverse(((0, y), (1, 0))));
+        max_visited = max_visited.max(map.traverse(((map.bounds.0, y), (-1, 0))));
+    }
+    for x in 0..=map.bounds.0 {
+        max_visited = max_visited.max(map.traverse(((x, 0), (0, 1))));
+        max_visited = max_visited.max(map.traverse(((x, map.bounds.1), (0, -1))));
+    }
+
+    println!("Part 2: {}", max_visited);
 }
