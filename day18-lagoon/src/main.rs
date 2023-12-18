@@ -112,17 +112,14 @@ impl From<Vec<Move>> for Lagoon {
 
 impl Lagoon {
     fn area(&self) -> i64 {
-        let len = self.points.len();
-        let mut area = 0;
-
-        for i in 0..len {
-            let p1 = self.points[i];
-            let p2 = self.points[(i + 1) % len];
-
-            area += (p1.0 * p2.1) - (p1.1 * p2.0);
-        }
-
-        area.abs() / 2
+        self.points
+            .windows(2)
+            .map(|pair| {
+                (pair[0].0 * pair[1].1) - (pair[0].1 * pair[1].0)
+            })
+            .sum::<i64>()
+            .abs()
+            / 2
     }
 }
 
