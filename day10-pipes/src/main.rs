@@ -133,7 +133,7 @@ impl Maze {
     }
 
     fn build_path(&mut self) {
-        let mut path = HashMap::new();
+        let mut path = vec![];
         // Check pieces around the animal
         let animal_directions: Vec<Direction> = Direction::iter()
             .filter_map(|direction| {
@@ -153,6 +153,7 @@ impl Maze {
         // Start the path
         let mut direction = animal_directions[0];
         let mut position = self.go(self.animal, direction).unwrap();
+        path.push(position);
         let mut steps = 1;
 
         while position != self.animal {
@@ -163,49 +164,28 @@ impl Maze {
                 .find(|dir| **dir != direction.opposite())
                 .unwrap();
 
-            path.insert(position, piece);
+            path.push(position);
             direction = *next_direction;
             position = self.go(position, direction).unwrap();
             steps += 1;
         }
 
-        self.area_size = self.calculate_area_size(&path);
+        self.area_size = self.calculate_area_size(&path) as usize;
         self.path_size = steps;
     }
     
-    fn calculate_area_size(&self, path: &HashMap<(usize, usize), &Piece>) -> usize {
+    fn calculate_area_size(&self, path: &Vec<(usize, usize)>) -> i64 {
         let mut area_size = 0;
-        let mut in_area = false;
+        let len = path.len();
 
-        for (x, row) in self.map.iter().enumerate() {
-            for (y, _) in row.iter().enumerate() {
-                if let Some(piece) = path.get(&(x, y)) {
-                    if piece.directions.contains(&Direction::East) {
-                        in_area = true;
-                    } else {
-                        in_area = !in_area;
-                    }
-                    if in_area {
-                        print!("X");
-                    } else {
-                        print!("Y");
-                    }
-                } else {
-                    if in_area {
-                        print!("I");
-                        area_size += 1;
-                    } else {
-                        print!("0");
-                    }
-                }
+        for i in 0..len {
+            let p1 = path[i];
+            let p2 = path[(i + 1) % len];
 
-            }
-
-            println!();
-            in_area = false;
+            area_size += (p1.0 as i64 - p2.0 as i64) * (p1.1 as i64 + p2.1 as i64);
         }
 
-        area_size
+        area_size.abs() / 2
     }
 }
 
@@ -228,6 +208,7 @@ fn main() {
 
     println!("Path length: {}, farthest away: {}", maze.path_size, maze.path_size / 2);
     println!("Area size: {}", maze.area_size);
+    println!("Inside area: {}", maze.area_size - maze.path_size / 2 + 1);
     println!("Runtime: {:?}", now.elapsed());
 }
 
