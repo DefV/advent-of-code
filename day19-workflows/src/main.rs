@@ -27,6 +27,11 @@ enum Rule {
     Default(String),
 }
 
+const ACCEPTED: &str = "A";
+const REJECTED: &str = "R";
+const ENTRANCE: &str = "in";
+
+
 impl From<&str> for Rule {
     fn from(str: &str) -> Self {
         if let Some((condition, destination)) = str.split_once(':') {
@@ -66,12 +71,12 @@ impl From<&str> for Workflow {
 }
 
 impl Workflow {
-    fn is_decision(destination: &String) -> bool {
-        destination == "A" || destination == "R"
+    fn is_decision(destination: &str) -> bool {
+        destination == ACCEPTED || destination == REJECTED
     }
 
     fn is_accepted(&self, input: &Input) -> bool {
-        let mut destination = String::from("in");
+        let mut destination = String::from(ENTRANCE);
 
         while !Self::is_decision(&destination) {
             let rules = self.steps.get(&destination).unwrap();
@@ -97,7 +102,7 @@ impl Workflow {
             }
         }
 
-        destination == "A"
+        destination == ACCEPTED
     }
 
     fn walk_possibilities(&self, rule_key: String, mut input_range: InputRange) -> u64 {
@@ -110,35 +115,29 @@ impl Workflow {
                     let (current_range, next_range) = input_range.create_lt_branches(key, value);
                     input_range = next_range;
 
-                    if new_destination == "A" {
-                        sum += current_range.possibility_count();
-                    } else if new_destination == "R" {
-                        // Nothing happens
-                    } else {
-                        sum += self.walk_possibilities(new_destination.clone(), current_range);
+                    sum += match new_destination.as_str() {
+                        ACCEPTED => current_range.possibility_count(),
+                        REJECTED => 0,
+                        _ => self.walk_possibilities(new_destination.clone(), current_range),
                     }
                 }
                 Rule::Gt(key, value, new_destination) => {
                     let (current_range, next_range) = input_range.create_gt_branches(key, value);
                     input_range = next_range;
 
-                    if new_destination == "A" {
-                        sum += current_range.possibility_count();
-                    } else if new_destination == "R" {
-                        // Nothing happens
-                    } else {
-                        sum += self.walk_possibilities(new_destination.clone(), current_range);
+                    sum += match new_destination.as_str() {
+                        ACCEPTED => current_range.possibility_count(),
+                        REJECTED => 0,
+                        _ => self.walk_possibilities(new_destination.clone(), current_range),
                     }
                 }
                 Rule::Default(new_destination) => {
                     let current_range = input_range.clone();
 
-                    if new_destination == "A" {
-                        sum += current_range.possibility_count();
-                    } else if new_destination == "R" {
-                        // Nothing happens
-                    } else {
-                        sum += self.walk_possibilities(new_destination.clone(), current_range);
+                    sum += match new_destination.as_str() {
+                        ACCEPTED => current_range.possibility_count(),
+                        REJECTED => 0,
+                        _ => self.walk_possibilities(new_destination.clone(), current_range),
                     }
                 }
             }
@@ -245,7 +244,7 @@ fn part1(document: &str) {
 fn part2(document: &str) {
     let (rules, _inputs) = document.split_once("\n\n").unwrap();
     let workflow = Workflow::from(rules);
-    let sum = workflow.walk_possibilities(String::from("in"), InputRange::default());
+    let sum = workflow.walk_possibilities(String::from(ENTRANCE), InputRange::default());
 
     println!("Part 2: {}", sum);
 }
